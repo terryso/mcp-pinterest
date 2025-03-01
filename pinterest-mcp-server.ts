@@ -10,11 +10,18 @@ import {
 } from '@modelcontextprotocol/sdk/types.js';
 // @ts-ignore
 import PinterestScraper from './pinterest-scraper.js';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Default configuration constants
 const DEFAULT_SEARCH_LIMIT = 10;
 const DEFAULT_SEARCH_KEYWORD = 'landscape';
 const DEFAULT_HEADLESS_MODE = true;
+const DEFAULT_DOWNLOAD_DIR = path.join(__dirname, '../downloads');
 
 /**
  * Pinterest MCP Server
@@ -105,6 +112,35 @@ class PinterestMcpServer {
             },
             required: ['image_url'],
           },
+        },
+        {
+          name: 'pinterest_search_and_download',
+          description: 'Search for images on Pinterest by keyword and download them',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              keyword: {
+                type: 'string',
+                description: 'Search keyword',
+              },
+              limit: {
+                type: 'integer',
+                description: `Number of images to return and download (default: ${DEFAULT_SEARCH_LIMIT})`,
+                default: DEFAULT_SEARCH_LIMIT,
+              },
+              headless: {
+                type: 'boolean',
+                description: `Whether to use headless browser mode (default: ${DEFAULT_HEADLESS_MODE})`,
+                default: DEFAULT_HEADLESS_MODE,
+              },
+              download_dir: {
+                type: 'string',
+                description: `Directory to save downloaded images (default: ${DEFAULT_DOWNLOAD_DIR})`,
+                default: DEFAULT_DOWNLOAD_DIR,
+              },
+            },
+            required: ['keyword'],
+          },
         }
       ]
     }));
@@ -121,6 +157,8 @@ class PinterestMcpServer {
             return await this.handlePinterestSearch(request.params.args || request.params.arguments);
           case 'pinterest_get_image_info':
             return await this.handlePinterestGetImageInfo(request.params.args || request.params.arguments);
+          case 'pinterest_search_and_download':
+            return await this.handlePinterestSearchAndDownload(request.params.args || request.params.arguments);
           default:
             throw new McpError(
               ErrorCode.MethodNotFound,
@@ -395,6 +433,237 @@ class PinterestMcpServer {
             text: `Error getting image info: ${error.message}`,
           },
         ],
+      };
+    }
+  }
+
+  /**
+   * Handle Pinterest search and download requests
+   */
+  private async handlePinterestSearchAndDownload(args: any) {
+    try {
+      // Extract parameters
+      let keyword = '';
+      let limit = DEFAULT_SEARCH_LIMIT;
+      let headless = DEFAULT_HEADLESS_MODE;
+      let downloadDir = DEFAULT_DOWNLOAD_DIR;
+      
+      // Normalize args if it's a string with backticks
+      if (typeof args === 'string') {
+        args = args.replace(/`/g, '"');
+        console.error('Normalized args string:', args);
+      }
+      
+      // Handle different input types
+      if (args) {
+        if (typeof args === 'object') {
+          // Extract keyword
+          if ('keyword' in args && typeof args.keyword === 'string') {
+            keyword = args.keyword.trim();
+          } else if ('`keyword`' in args) {
+            keyword = String(args['`keyword`']).trim();
+          }
+          
+          // Extract limit
+          if ('limit' in args && (typeof args.limit === 'number' || !isNaN(parseInt(String(args.limit))))) {
+            limit = typeof args.limit === 'number' ? args.limit : parseInt(String(args.limit), 10);
+          } else if ('`limit`' in args) {
+            const limitValue = args['`limit`'];
+            limit = typeof limitValue === 'number' ? limitValue : parseInt(String(limitValue), 10);
+          }
+          
+          // Extract headless
+          if ('headless' in args && typeof args.headless === 'boolean') {
+            headless = args.headless;
+          } else if ('`headless`' in args) {
+            headless = Boolean(args['`headless`']);
+          }
+          
+          // Extract download_dir
+          if ('download_dir' in args && typeof args.download_dir === 'string') {
+            downloadDir = args.download_dir.trim();
+          } else if ('`download_dir`' in args) {
+            downloadDir = String(args['`download_dir`']).trim();
+          }
+        } else if (typeof args === 'string') {
+          // Try to parse as JSON
+          try {
+            let parsed;
+            try {
+              parsed = JSON.parse(args);
+            } catch (jsonError) {
+              const fixedJson = args
+                .replace(/'/g, '"')
+                .replace(/(\w+):/g, '"$1":');
+              parsed = JSON.parse(fixedJson);
+            }
+            
+            if (parsed) {
+              if (parsed.keyword && typeof parsed.keyword === 'string') {
+                keyword = parsed.keyword.trim();
+              }
+              
+              if (parsed.limit !== undefined) {
+                if (typeof parsed.limit === 'number') {
+                  limit = parsed.limit;
+                } else if (typeof parsed.limit === 'string' && !isNaN(parseInt(parsed.limit))) {
+                  limit = parseInt(parsed.limit, 10);
+                }
+              }
+              
+              if (parsed.headless !== undefined && typeof parsed.headless === 'boolean') {
+                headless = parsed.headless;
+              }
+              
+              if (parsed.download_dir && typeof parsed.download_dir === 'string') {
+                downloadDir = parsed.download_dir.trim();
+              }
+            }
+          } catch (e) {
+            // If can't parse as JSON, try to extract using regex
+            const keywordMatch = args.match(/["`']?keyword["`']?\s*[:=]\s*["`']([^"`']+)["`']/i);
+            if (keywordMatch && keywordMatch[1]) {
+              keyword = keywordMatch[1].trim();
+            }
+            
+            const limitMatch = args.match(/["`']?limit["`']?\s*[:=]\s*(\d+)/i);
+            if (limitMatch && limitMatch[1]) {
+              limit = parseInt(limitMatch[1], 10);
+            }
+            
+            const downloadDirMatch = args.match(/["`']?download_dir["`']?\s*[:=]\s*["`']([^"`']+)["`']/i);
+            if (downloadDirMatch && downloadDirMatch[1]) {
+              downloadDir = downloadDirMatch[1].trim();
+            }
+          }
+        }
+      }
+      
+      // Use defaults if values are missing
+      if (!keyword) {
+        keyword = DEFAULT_SEARCH_KEYWORD;
+      }
+      
+      if (isNaN(limit) || limit <= 0) {
+        limit = DEFAULT_SEARCH_LIMIT;
+      }
+      
+      if (!downloadDir) {
+        downloadDir = DEFAULT_DOWNLOAD_DIR;
+      }
+      
+      // console.error('Final parameters - keyword:', keyword, 'limit:', limit, 'headless:', headless, 'downloadDir:', downloadDir);
+      
+      // 创建包含关键词的下载目录
+      const keywordDir = path.join(downloadDir, keyword.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_\u4e00-\u9fa5]/g, ''));
+      
+      // Create download directory if it doesn't exist
+      try {
+        if (!fs.existsSync(keywordDir)) {
+          fs.mkdirSync(keywordDir, { recursive: true });
+          // console.error(`Created download directory: ${keywordDir}`);
+        }
+      } catch (dirError: any) {
+        console.error(`Error creating download directory: ${dirError.message}`);
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `创建下载目录失败: ${dirError.message}`
+            }
+          ]
+        };
+      }
+      
+      // Execute search
+      let results = [];
+      try {
+        results = await this.scraper.search(keyword, limit, headless);
+      } catch (searchError) {
+        console.error('Search error:', searchError);
+        results = [];
+      }
+      
+      // Ensure results is an array
+      const validResults = Array.isArray(results) ? results : [];
+      
+      // Download images
+      const downloadResults = [];
+      for (let i = 0; i < validResults.length; i++) {
+        const result = validResults[i];
+        if (result.image_url) {
+          // Generate filename from image URL
+          const urlParts = result.image_url.split('/');
+          const filename = urlParts[urlParts.length - 1];
+          const sanitizedFilename = filename.replace(/[^a-zA-Z0-9._-]/g, '_');
+          
+          // 简化文件名，因为目录名已经包含关键词
+          const outputPath = path.join(keywordDir, `${i+1}_${sanitizedFilename}`);
+          
+          // Download image
+          const success = await this.scraper.downloadImage(result.image_url, outputPath);
+          
+          downloadResults.push({
+            index: i + 1,
+            title: result.title || 'No title',
+            image_url: result.image_url,
+            output_path: outputPath,
+            success: success
+          });
+        }
+      }
+      
+      // Return results in MCP protocol format
+      const contentItems = [
+        {
+          type: 'text',
+          text: `搜索并下载了 ${validResults.length} 张与"${keyword}"相关的图片`
+        }
+      ];
+      
+      // Add a text content item for each download result
+      downloadResults.forEach((result, index) => {
+        contentItems.push({
+          type: 'text',
+          text: `图片 ${result.index}: ${result.title}`
+        });
+        
+        contentItems.push({
+          type: 'text',
+          text: `链接: ${result.image_url}`
+        });
+        
+        contentItems.push({
+          type: 'text',
+          text: `保存位置: ${result.output_path}`
+        });
+        
+        contentItems.push({
+          type: 'text',
+          text: `下载状态: ${result.success ? '成功' : '失败'}`
+        });
+        
+        // Add separator (except for last result)
+        if (index < downloadResults.length - 1) {
+          contentItems.push({
+            type: 'text',
+            text: `---`
+          });
+        }
+      });
+      
+      return {
+        content: contentItems
+      };
+    } catch (error: any) {
+      console.error('Pinterest search and download handling error:', error);
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `搜索和下载过程中出错: ${error.message}`
+          }
+        ]
       };
     }
   }
