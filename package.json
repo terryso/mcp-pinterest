@@ -1,0 +1,27 @@
+{
+  "name": "pinterest-mcp-server",
+  "version": "1.0.0",
+  "description": "A Pinterest Model Context Protocol (MCP) server for image search and information retrieval",
+  "main": "pinterest-mcp-server.ts",
+  "type": "module",
+  "scripts": {
+    "start": "node dist/pinterest-mcp-server.js",
+    "build": "tsc",
+    "dev": "ts-node-dev --respawn pinterest-mcp-server.ts",
+    "start:pinterest": "node dist/pinterest-mcp-server.js",
+    "dev:pinterest": "ts-node-dev --respawn pinterest-mcp-server.ts"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^0.6.0",
+    "@myno_21/pinterest-scraper": "^1.0.4",
+    "axios": "^1.8.1",
+    "cheerio": "^1.0.0",
+    "puppeteer": "^24.3.0",
+    "puppeteer-core": "^24.3.0"
+  },
+  "devDependencies": {
+    "ts-node": "^10.9.2",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.0.0"
+  }
+}
