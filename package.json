@@ -7,7 +7,7 @@
   "license": "MIT",
   "scripts": {
     "start": "node dist/pinterest-mcp-server.js",
-    "build": "tsc",
+    "build": "tsc && cp pinterest-scraper.js dist/",
     "dev": "ts-node-dev --respawn pinterest-mcp-server.ts",
     "start:pinterest": "node dist/pinterest-mcp-server.js",
     "dev:pinterest": "ts-node-dev --respawn pinterest-mcp-server.ts"

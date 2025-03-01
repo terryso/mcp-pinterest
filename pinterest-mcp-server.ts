@@ -377,12 +377,12 @@ class PinterestMcpServer {
             text: `Pinterest Image Information`,
           },
           {
-            type: 'json',
-            json: {
+            type: 'text',
+            text: JSON.stringify({
               image_url: imageUrl,
               source: 'Pinterest',
               timestamp: new Date().toISOString(),
-            },
+            }, null, 2),
           },
         ],
       };
