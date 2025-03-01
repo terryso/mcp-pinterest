@@ -84,6 +84,12 @@ Search for robot images on Pinterest
 
 The AI will use the MCP server to search Pinterest and display the results.
 
+### Example Screenshot
+
+![Pinterest Search Example](screenshot.png)
+
+*Screenshot showing a search for 20 images of 三上悠亚 with all images successfully downloaded.*
+
 ## Development
 
 ### Project Structure
