@@ -1,5 +1,7 @@
 # Pinterest MCP Server
 
+[![smithery badge](https://smithery.ai/badge/mcp-pinterest)](https://smithery.ai/server/mcp-pinterest)
+
 A Model Context Protocol (MCP) server for Pinterest image search and information retrieval.
 
 ## Features
@@ -16,6 +18,14 @@ A Model Context Protocol (MCP) server for Pinterest image search and information
 - [Cursor IDE](https://cursor.sh/) for MCP integration
 
 ## Installation
+
+### Installing via Smithery
+
+To install mcp-pinterest for Claude Desktop automatically via [Smithery](https://smithery.ai/server/mcp-pinterest):
+
+```bash
+npx -y @smithery/cli install mcp-pinterest --client claude
+```
 
 1. Clone this repository:
    ```bash
