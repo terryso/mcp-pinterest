@@ -4,6 +4,7 @@
   "description": "A Pinterest Model Context Protocol (MCP) server for image search and information retrieval",
   "main": "pinterest-mcp-server.ts",
   "type": "module",
+  "license": "MIT",
   "scripts": {
     "start": "node dist/pinterest-mcp-server.js",
     "build": "tsc",
