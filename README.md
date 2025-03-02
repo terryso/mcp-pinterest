@@ -31,7 +31,7 @@ npx -y @smithery/cli install mcp-pinterest --client claude
 
 1. Clone this repository:
    ```bash
-   git clone https://github.com/yourusername/pinterest-mcp-server.git
+   git clone https://github.com/terryso/mcp-pinterest.git pinterest-mcp-server
    cd pinterest-mcp-server
    ```
 
