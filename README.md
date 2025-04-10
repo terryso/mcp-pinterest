@@ -58,8 +58,17 @@ You can now use this server as an MCP server in Cursor.
 3. Click "Add Server"
 4. Enter the following details:
    - Name: Pinterest MCP
-   - TYPE: COMMAND
-   - COMMAND: node /path/to/mcp-pinterest/dist/pinterest-mcp-server.js
+   - Type: Command
+   - Command: `node`
+   - Args: `["/path/to/mcp-pinterest/dist/pinterest-mcp-server.js"]`
+
+   或者直接编辑Cursor的MCP配置文件（通常位于`~/.cursor/mcp.json`），添加以下内容：
+   ```json
+   "pinterest": {
+     "command": "node",
+     "args": ["/path/to/mcp-pinterest/dist/pinterest-mcp-server.js"]
+   }
+   ```
 5. Click "Save"
 
 ## Available MCP Functions
