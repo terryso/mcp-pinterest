@@ -11,6 +11,7 @@ A Model Context Protocol (MCP) server for Pinterest image search and information
 - Seamless integration with Cursor IDE through MCP
 - Support for headless browser mode
 - Limit control for search results
+- Search and download images from Pinterest
 
 ## Prerequisites
 
@@ -85,6 +86,12 @@ The server exposes the following MCP functions:
   - Parameters:
     - `image_url`: URL of the Pinterest image (required)
 
+- `pinterest_search_and_download`: Search and download images from Pinterest
+  - Parameters:
+    - `keyword`: Search term (required)
+    - `limit`: Number of images to return (default: 10)
+    - `headless`: Whether to use headless browser mode (default: true)
+
 ## Example Usage in Cursor
 
 Once configured, you can use the Pinterest MCP functions directly in Cursor's AI chat:
@@ -128,4 +135,52 @@ To add new MCP functions:
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details. 
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Configuration Options
+
+### Environment Variables
+
+The server supports the following environment variables for configuration:
+
+- `MCP_PINTEREST_DOWNLOAD_DIR`: Specifies the root directory for downloading images. If not set, the default is the `../downloads` directory relative to the server script.
+
+### Usage
+
+#### Setting Download Directory
+
+1. Set the download directory using an environment variable (recommended method):
+
+```bash
+# Linux/macOS
+export MCP_PINTEREST_DOWNLOAD_DIR=/path/to/your/download/directory
+# Then start the server
+node pinterest-mcp-server.js
+
+# Windows (CMD)
+set MCP_PINTEREST_DOWNLOAD_DIR=C:\path\to\your\download\directory
+# Then start the server
+node pinterest-mcp-server.js
+
+# Windows (PowerShell)
+$env:MCP_PINTEREST_DOWNLOAD_DIR="C:\path\to\your\download\directory"
+# Then start the server
+node pinterest-mcp-server.js
+```
+
+2. If the environment variable is not set, the server will use the default download directory (relative to the server script's `../downloads`).
+
+#### Notes
+
+- The server will verify the existence and writability of the download directory when starting. If the directory does not exist, it will attempt to create it; if it cannot be created or written to, the server will exit.
+- Clients should not specify download paths through parameters when calling download-related tools, as all downloads will be saved in the directory specified by the environment variable or the default directory.
+
+#### Interface Description
+
+The server provides the following MCP tools:
+
+1. `pinterest_search`: Search for Pinterest images by keyword
+2. `pinterest_get_image_info`: Get detailed information about a Pinterest image
+3. `pinterest_search_and_download`: Search and download Pinterest images
+
+For detailed interface parameter references, please refer to the MCP tool definitions. 

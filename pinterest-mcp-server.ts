@@ -11,9 +11,9 @@ import {
 // @ts-ignore
 import PinterestScraper from './pinterest-scraper.js';
 import { downloadImage, batchDownload } from './src/pinterest-download.js';
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -22,7 +22,55 @@ const __dirname = path.dirname(__filename);
 const DEFAULT_SEARCH_LIMIT = 10;
 const DEFAULT_SEARCH_KEYWORD = 'landscape';
 const DEFAULT_HEADLESS_MODE = true;
+
+// 从环境变量读取下载目录，如果未设置则使用默认值
+const ENV_DOWNLOAD_DIR = process.env.MCP_PINTEREST_DOWNLOAD_DIR;
 const DEFAULT_DOWNLOAD_DIR = path.join(__dirname, '../downloads');
+
+// 检查和验证下载目录
+function validateDownloadDirectory(dirPath: string): boolean {
+  try {
+    // 如果目录不存在，尝试创建
+    if (!fs.existsSync(dirPath)) {
+      fs.mkdirSync(dirPath, { recursive: true });
+      console.log(`创建下载目录: ${dirPath}`);
+    }
+    
+    // 验证目录是否可写
+    const testFile = path.join(dirPath, '.write-test');
+    fs.writeFileSync(testFile, 'test');
+    fs.unlinkSync(testFile);
+    return true;
+  } catch (error: any) {
+    console.error(`下载目录验证失败: ${dirPath}, 错误: ${error.message}`);
+    return false;
+  }
+}
+
+// 获取有效的下载目录
+function getValidDownloadDirectory(): string {
+  if (ENV_DOWNLOAD_DIR) {
+    if (validateDownloadDirectory(ENV_DOWNLOAD_DIR)) {
+      console.log(`使用环境变量指定的下载目录: ${ENV_DOWNLOAD_DIR}`);
+      return ENV_DOWNLOAD_DIR;
+    }
+    
+    console.error('环境变量指定的下载目录无效，退出程序');
+    process.exit(1);
+  }
+  
+  // 验证默认目录
+  if (validateDownloadDirectory(DEFAULT_DOWNLOAD_DIR)) {
+    console.log(`使用默认下载目录: ${DEFAULT_DOWNLOAD_DIR}`);
+    return DEFAULT_DOWNLOAD_DIR;
+  }
+  
+  console.error('默认下载目录无效，退出程序');
+  process.exit(1);
+}
+
+// 设置当前使用的下载目录
+const CURRENT_DOWNLOAD_DIR = getValidDownloadDirectory();
 
 /**
  * 下载结果类型定义
@@ -153,11 +201,6 @@ class PinterestMcpServer {
                 type: 'boolean',
                 description: `Whether to use headless browser mode (default: ${DEFAULT_HEADLESS_MODE})`,
                 default: DEFAULT_HEADLESS_MODE,
-              },
-              download_dir: {
-                type: 'string',
-                description: `Directory to save downloaded images (default: ${DEFAULT_DOWNLOAD_DIR})`,
-                default: DEFAULT_DOWNLOAD_DIR,
               },
             },
             required: ['keyword'],
@@ -328,7 +371,9 @@ class PinterestMcpServer {
       // Execute search
       let results = [];
       try {
-        results = await this.scraper.search(keyword, limit, headless);
+        // 创建不会触发取消的AbortController
+        const controller = new AbortController();
+        results = await this.scraper.search(keyword, limit, headless, controller.signal);
       } catch (searchError) {
         // console.error('Search error:', searchError);
         results = [];
@@ -467,7 +512,7 @@ class PinterestMcpServer {
       let keyword = '';
       let limit = DEFAULT_SEARCH_LIMIT;
       let headless = DEFAULT_HEADLESS_MODE;
-      let downloadDir = DEFAULT_DOWNLOAD_DIR;
+      let downloadDir = CURRENT_DOWNLOAD_DIR;
       
       // Normalize args if it's a string with backticks
       if (typeof args === 'string') {
@@ -500,12 +545,8 @@ class PinterestMcpServer {
             headless = Boolean(args['`headless`']);
           }
           
-          // Extract download_dir
-          if ('download_dir' in args && typeof args.download_dir === 'string') {
-            downloadDir = args.download_dir.trim();
-          } else if ('`download_dir`' in args) {
-            downloadDir = String(args['`download_dir`']).trim();
-          }
+          // 下载目录不再从客户端参数中提取，而是始终使用环境配置的目录
+        
         } else if (typeof args === 'string') {
           // Try to parse as JSON
           try {
@@ -536,9 +577,7 @@ class PinterestMcpServer {
                 headless = parsed.headless;
               }
               
-              if (parsed.download_dir && typeof parsed.download_dir === 'string') {
-                downloadDir = parsed.download_dir.trim();
-              }
+              // 不再处理download_dir参数
             }
           } catch (e) {
             // If can't parse as JSON, try to extract using regex
@@ -547,15 +586,13 @@ class PinterestMcpServer {
               keyword = keywordMatch[1].trim();
             }
             
+            // Try to extract limit
             const limitMatch = args.match(/["`']?limit["`']?\s*[:=]\s*(\d+)/i);
             if (limitMatch && limitMatch[1]) {
               limit = parseInt(limitMatch[1], 10);
             }
             
-            const downloadDirMatch = args.match(/["`']?download_dir["`']?\s*[:=]\s*["`']([^"`']+)["`']/i);
-            if (downloadDirMatch && downloadDirMatch[1]) {
-              downloadDir = downloadDirMatch[1].trim();
-            }
+            // 不再处理download_dir参数
           }
         }
       }
@@ -569,9 +606,8 @@ class PinterestMcpServer {
         limit = DEFAULT_SEARCH_LIMIT;
       }
       
-      if (!downloadDir) {
-        downloadDir = DEFAULT_DOWNLOAD_DIR;
-      }
+      // 始终使用环境变量设置或默认值
+      downloadDir = CURRENT_DOWNLOAD_DIR;
       
       // console.error('Final parameters - keyword:', keyword, 'limit:', limit, 'headless:', headless, 'downloadDir:', downloadDir);
       
@@ -599,7 +635,9 @@ class PinterestMcpServer {
       // Execute search
       let results = [];
       try {
-        results = await this.scraper.search(keyword, limit, headless);
+        // 创建不会触发取消的AbortController
+        const controller = new AbortController();
+        results = await this.scraper.search(keyword, limit, headless, controller.signal);
       } catch (searchError) {
         // console.error('Search error:', searchError);
         results = [];
@@ -608,8 +646,11 @@ class PinterestMcpServer {
       // Ensure results is an array
       const validResults = Array.isArray(results) ? results : [];
       
+      // 最大重试次数，提高稳定性
+      const maxRetries = 3;
+      
       // 使用batchDownload函数进行批量下载
-      const downloadResult = await batchDownload(validResults, keywordDir) as DownloadResult;
+      const downloadResult = await batchDownload(validResults, keywordDir, maxRetries) as DownloadResult;
       
       // Return results in MCP protocol format
       const contentItems = [
