@@ -58,3 +58,5 @@ debug/
 .npm/
 .eslintcache 
 example.js
+
+docs/

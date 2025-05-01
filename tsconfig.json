@@ -8,8 +8,10 @@
     "strict": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "allowJs": true
   },
-  "include": ["*.ts"],
+  "include": ["*.ts", "*.js"],
   "exclude": ["node_modules", "dist"]
 } 

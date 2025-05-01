@@ -10,6 +10,7 @@ import {
 } from '@modelcontextprotocol/sdk/types.js';
 // @ts-ignore
 import PinterestScraper from './pinterest-scraper.js';
+import { downloadImage, batchDownload } from './src/pinterest-download.js';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -22,6 +23,26 @@ const DEFAULT_SEARCH_LIMIT = 10;
 const DEFAULT_SEARCH_KEYWORD = 'landscape';
 const DEFAULT_HEADLESS_MODE = true;
 const DEFAULT_DOWNLOAD_DIR = path.join(__dirname, '../downloads');
+
+/**
+ * 下载结果类型定义
+ */
+interface DownloadResult {
+  success: boolean;
+  total: number;
+  downloadedCount: number;
+  failedCount: number;
+  downloaded: Array<{
+    success: boolean;
+    id: string;
+    path: string;
+    url: string;
+  }>;
+  failed: Array<{
+    url: string;
+    error: string;
+  }>;
+}
 
 /**
  * Pinterest MCP Server
@@ -149,8 +170,8 @@ class PinterestMcpServer {
     this.server.setRequestHandler(CallToolRequestSchema, async (request: CallToolRequest) => {
       try {
         // 打印完整的请求对象，帮助调试
-        console.error('Received request:', JSON.stringify(request, null, 2));
-        console.error('Request params:', JSON.stringify(request.params, null, 2));
+        // console.error('Received request:', JSON.stringify(request, null, 2));
+        // console.error('Request params:', JSON.stringify(request.params, null, 2));
         
         switch (request.params.name) {
           case 'pinterest_search':
@@ -189,44 +210,44 @@ class PinterestMcpServer {
       if (typeof args === 'string') {
         // Replace backticks with double quotes
         args = args.replace(/`/g, '"');
-        console.error('Normalized args string:', args);
+        // console.error('Normalized args string:', args);
       }
       
       // Handle different input types
       if (args) {
         if (typeof args === 'object') {
           // If object, try to get properties directly
-          console.error('Args is object with keys:', Object.keys(args));
+          // console.error('Args is object with keys:', Object.keys(args));
           
           // Check for keyword property
           if ('keyword' in args && typeof args.keyword === 'string') {
             keyword = args.keyword.trim();
-            console.error('Found keyword in object:', keyword);
+            // console.error('Found keyword in object:', keyword);
           } else if ('`keyword`' in args) {
             keyword = String(args['`keyword`']).trim();
-            console.error('Found `keyword` in object:', keyword);
+            // console.error('Found `keyword` in object:', keyword);
           }
           
           // Check for limit property
           if ('limit' in args && (typeof args.limit === 'number' || !isNaN(parseInt(String(args.limit))))) {
             limit = typeof args.limit === 'number' ? args.limit : parseInt(String(args.limit), 10);
-            console.error('Found limit in object:', limit);
+            // console.error('Found limit in object:', limit);
           } else if ('`limit`' in args) {
             const limitValue = args['`limit`'];
             limit = typeof limitValue === 'number' ? limitValue : parseInt(String(limitValue), 10);
-            console.error('Found `limit` in object:', limit);
+            // console.error('Found `limit` in object:', limit);
           }
           
           // Check for headless property
           if ('headless' in args && typeof args.headless === 'boolean') {
             headless = args.headless;
-            console.error('Found headless in object:', headless);
+            // console.error('Found headless in object:', headless);
           } else if ('`headless`' in args) {
             headless = Boolean(args['`headless`']);
-            console.error('Found `headless` in object:', headless);
+            // console.error('Found `headless` in object:', headless);
           }
         } else if (typeof args === 'string') {
-          console.error('Args is string type, attempting to parse');
+          // console.error('Args is string type, attempting to parse');
           
           // Try to parse as JSON
           try {
@@ -234,7 +255,7 @@ class PinterestMcpServer {
             let parsed;
             try {
               parsed = JSON.parse(args);
-              console.error('Successfully parsed as standard JSON');
+              // console.error('Successfully parsed as standard JSON');
             } catch (jsonError) {
               // If that fails, try to fix common JSON format issues
               console.error('Standard JSON parse failed, trying to fix format');
@@ -253,7 +274,7 @@ class PinterestMcpServer {
             if (parsed) {
               if (parsed.keyword && typeof parsed.keyword === 'string') {
                 keyword = parsed.keyword.trim();
-                console.error('Found keyword in parsed JSON:', keyword);
+                // console.error('Found keyword in parsed JSON:', keyword);
               }
               
               if (parsed.limit !== undefined) {
@@ -262,29 +283,29 @@ class PinterestMcpServer {
                 } else if (typeof parsed.limit === 'string' && !isNaN(parseInt(parsed.limit))) {
                   limit = parseInt(parsed.limit, 10);
                 }
-                console.error('Found limit in parsed JSON:', limit);
+                // console.error('Found limit in parsed JSON:', limit);
               }
               
               if (parsed.headless !== undefined && typeof parsed.headless === 'boolean') {
                 headless = parsed.headless;
-                console.error('Found headless in parsed JSON:', headless);
+                // console.error('Found headless in parsed JSON:', headless);
               }
             }
           } catch (e) {
-            console.error('All JSON parsing attempts failed, trying regex');
+            // console.error('All JSON parsing attempts failed, trying regex');
             
             // If can't parse as JSON, try to extract using regex
             const keywordMatch = args.match(/["`']?keyword["`']?\s*[:=]\s*["`']([^"`']+)["`']/i);
             if (keywordMatch && keywordMatch[1]) {
               keyword = keywordMatch[1].trim();
-              console.error('Found keyword using regex:', keyword);
+              // console.error('Found keyword using regex:', keyword);
             }
             
             // Try to extract limit
             const limitMatch = args.match(/["`']?limit["`']?\s*[:=]\s*(\d+)/i);
             if (limitMatch && limitMatch[1]) {
               limit = parseInt(limitMatch[1], 10);
-              console.error('Found limit using regex:', limit);
+              // console.error('Found limit using regex:', limit);
             }
           }
         }
@@ -293,23 +314,23 @@ class PinterestMcpServer {
       // If keyword is empty, use default keyword
       if (!keyword) {
         keyword = DEFAULT_SEARCH_KEYWORD;
-        console.error('No keyword provided, using default keyword:', keyword);
+        // console.error('No keyword provided, using default keyword:', keyword);
       }
       
       // Ensure limit is a positive number
       if (isNaN(limit) || limit <= 0) {
         limit = DEFAULT_SEARCH_LIMIT;
-        console.error('Invalid limit, using default limit:', limit);
+        // console.error('Invalid limit, using default limit:', limit);
       }
       
-      console.error('Final parameters - keyword:', keyword, 'limit:', limit, 'headless:', headless);
+      // console.error('Final parameters - keyword:', keyword, 'limit:', limit, 'headless:', headless);
       
       // Execute search
       let results = [];
       try {
         results = await this.scraper.search(keyword, limit, headless);
       } catch (searchError) {
-        console.error('Search error:', searchError);
+        // console.error('Search error:', searchError);
         results = [];
       }
       
@@ -338,9 +359,9 @@ class PinterestMcpServer {
           
           // If needs fixing, replace with original image URL
           if (needsFix) {
-            console.error(`Fixing thumbnail URL: ${result.image_url}`);
+            // console.error(`Fixing thumbnail URL: ${result.image_url}`);
             result.image_url = result.image_url.replace(/\/\d+x\d*\//, '/originals/');
-            console.error(`Fixed URL: ${result.image_url}`);
+            // console.error(`Fixed URL: ${result.image_url}`);
           }
         }
       }
@@ -387,7 +408,7 @@ class PinterestMcpServer {
         content: contentItems
       };
     } catch (error: any) {
-      console.error('Pinterest search handling error:', error);
+      // console.error('Pinterest search handling error:', error);
       return {
         content: [
           {
@@ -425,7 +446,7 @@ class PinterestMcpServer {
         ],
       };
     } catch (error: any) {
-      console.error('Error getting Pinterest image info:', error);
+      // console.error('Error getting Pinterest image info:', error);
       return {
         content: [
           {
@@ -451,7 +472,7 @@ class PinterestMcpServer {
       // Normalize args if it's a string with backticks
       if (typeof args === 'string') {
         args = args.replace(/`/g, '"');
-        console.error('Normalized args string:', args);
+        // console.error('Normalized args string:', args);
       }
       
       // Handle different input types
@@ -564,7 +585,7 @@ class PinterestMcpServer {
           // console.error(`Created download directory: ${keywordDir}`);
         }
       } catch (dirError: any) {
-        console.error(`Error creating download directory: ${dirError.message}`);
+        // console.error(`Error creating download directory: ${dirError.message}`);
         return {
           content: [
             {
@@ -580,71 +601,47 @@ class PinterestMcpServer {
       try {
         results = await this.scraper.search(keyword, limit, headless);
       } catch (searchError) {
-        console.error('Search error:', searchError);
+        // console.error('Search error:', searchError);
         results = [];
       }
       
       // Ensure results is an array
       const validResults = Array.isArray(results) ? results : [];
       
-      // Download images
-      const downloadResults = [];
-      for (let i = 0; i < validResults.length; i++) {
-        const result = validResults[i];
-        if (result.image_url) {
-          // Generate filename from image URL
-          const urlParts = result.image_url.split('/');
-          const filename = urlParts[urlParts.length - 1];
-          const sanitizedFilename = filename.replace(/[^a-zA-Z0-9._-]/g, '_');
-          
-          // 简化文件名，因为目录名已经包含关键词
-          const outputPath = path.join(keywordDir, `${i+1}_${sanitizedFilename}`);
-          
-          // Download image
-          const success = await this.scraper.downloadImage(result.image_url, outputPath);
-          
-          downloadResults.push({
-            index: i + 1,
-            title: result.title || 'No title',
-            image_url: result.image_url,
-            output_path: outputPath,
-            success: success
-          });
-        }
-      }
+      // 使用batchDownload函数进行批量下载
+      const downloadResult = await batchDownload(validResults, keywordDir) as DownloadResult;
       
       // Return results in MCP protocol format
       const contentItems = [
         {
           type: 'text',
           text: `搜索并下载了 ${validResults.length} 张与"${keyword}"相关的图片`
+        },
+        {
+          type: 'text',
+          text: `成功: ${downloadResult.downloadedCount}, 失败: ${downloadResult.failedCount}`
         }
       ];
       
       // Add a text content item for each download result
-      downloadResults.forEach((result, index) => {
+      downloadResult.downloaded.forEach((result: {success: boolean; id: string; path: string; url: string}, index: number) => {
         contentItems.push({
           type: 'text',
-          text: `图片 ${result.index}: ${result.title}`
+          text: `图片 ${index + 1}: ${validResults[index]?.title || 'No title'}`
         });
         
         contentItems.push({
           type: 'text',
-          text: `链接: ${result.image_url}`
+          text: `链接: ${result.url}`
         });
         
         contentItems.push({
           type: 'text',
-          text: `保存位置: ${result.output_path}`
-        });
-        
-        contentItems.push({
-          type: 'text',
-          text: `下载状态: ${result.success ? '成功' : '失败'}`
+          text: `保存位置: ${result.path}`
         });
         
         // Add separator (except for last result)
-        if (index < downloadResults.length - 1) {
+        if (index < downloadResult.downloaded.length - 1) {
           contentItems.push({
             type: 'text',
             text: `---`
@@ -652,11 +649,39 @@ class PinterestMcpServer {
         }
       });
       
+      // Add failed downloads if any
+      if (downloadResult.failedCount > 0) {
+        contentItems.push({
+          type: 'text',
+          text: `--- 下载失败的图片 ---`
+        });
+        
+        downloadResult.failed.forEach((failed: {url: string; error: string}, index: number) => {
+          contentItems.push({
+            type: 'text',
+            text: `失败 ${index + 1}: ${failed.url}`
+          });
+          
+          contentItems.push({
+            type: 'text',
+            text: `错误: ${failed.error}`
+          });
+          
+          // Add separator (except for last result)
+          if (index < downloadResult.failed.length - 1) {
+            contentItems.push({
+              type: 'text',
+              text: `---`
+            });
+          }
+        });
+      }
+      
       return {
         content: contentItems
       };
     } catch (error: any) {
-      console.error('Pinterest search and download handling error:', error);
+      // console.error('Pinterest search and download handling error:', error);
       return {
         content: [
           {
@@ -675,9 +700,9 @@ class PinterestMcpServer {
     try {
       const transport = new StdioServerTransport();
       await this.server.connect(transport);
-      console.error('Pinterest MCP server running via stdio');
+      // console.error('Pinterest MCP server running via stdio');
     } catch (error) {
-      console.error('Failed to start server:', error);
+      // console.error('Failed to start server:', error);
       process.exit(1);
     }
   }
@@ -686,6 +711,6 @@ class PinterestMcpServer {
 // Create and run server
 const server = new PinterestMcpServer();
 server.run().catch(error => {
-  console.error('Error running server:', error);
+  // console.error('Error running server:', error);
   process.exit(1);
 }); 
