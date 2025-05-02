@@ -44,9 +44,9 @@ jobs:
       - name: Install semantic-release
         run: npm install -g semantic-release @semantic-release/git @semantic-release/changelog @semantic-release/npm @semantic-release/github
 
-      - name: Create release.config.js
+      - name: Create release.config.cjs
         run: |
-          cat > release.config.js << 'EOL'
+          cat > release.config.cjs << 'EOL'
           module.exports = {
             branches: ['master'],
             plugins: [
