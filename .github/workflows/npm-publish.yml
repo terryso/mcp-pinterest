@@ -5,6 +5,12 @@ on:
     branches:
       - master
 
+# 添加权限配置
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
 jobs:
   publish-npm:
     runs-on: ubuntu-latest
@@ -14,6 +20,8 @@ jobs:
         with:
           # Need fetch-depth: 0 for semantic-release to analyze commit history
           fetch-depth: 0
+          # 添加 token 保证有足够的权限
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
