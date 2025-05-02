@@ -2,9 +2,12 @@
   "name": "pinterest-mcp-server",
   "version": "1.0.0",
   "description": "A Pinterest Model Context Protocol (MCP) server for image search and information retrieval",
-  "main": "pinterest-mcp-server.ts",
+  "main": "dist/index.js",
   "type": "module",
   "license": "MIT",
+  "bin": {
+    "pinterest-mcp-server": "bin/cli.js"
+  },
   "scripts": {
     "start": "node dist/pinterest-mcp-server.js",
     "build": "tsc && cp pinterest-scraper.js dist/",
@@ -20,6 +23,7 @@
     "@myno_21/pinterest-scraper": "^1.0.4",
     "axios": "^1.8.1",
     "cheerio": "^1.0.0",
+    "pinterest-mcp-server": "^1.0.0",
     "puppeteer-core": "^24.3.0"
   },
   "devDependencies": {
