@@ -11,6 +11,11 @@ import {
 // @ts-ignore
 import PinterestScraper from './pinterest-scraper.js';
 import { downloadImage, batchDownload } from './src/pinterest-download.js';
+import { 
+  DEFAULT_FILENAME_TEMPLATE, 
+  validateTemplate, 
+  generateFileName 
+} from './src/filename-template.js';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -26,6 +31,9 @@ const DEFAULT_HEADLESS_MODE = true;
 // 从环境变量读取下载目录，如果未设置则使用默认值
 const ENV_DOWNLOAD_DIR = process.env.MCP_PINTEREST_DOWNLOAD_DIR;
 const DEFAULT_DOWNLOAD_DIR = path.join(__dirname, '../downloads');
+
+// 从环境变量读取文件名模板，如果未设置则使用默认值
+const ENV_FILENAME_TEMPLATE = process.env.MCP_PINTEREST_FILENAME_TEMPLATE;
 
 // 检查和验证下载目录
 function validateDownloadDirectory(dirPath: string): boolean {
@@ -69,8 +77,27 @@ function getValidDownloadDirectory(): string {
   process.exit(1);
 }
 
+// 获取有效的文件名模板
+function getValidFilenameTemplate(): string {
+  if (ENV_FILENAME_TEMPLATE) {
+    const validationResult = validateTemplate(ENV_FILENAME_TEMPLATE);
+    if (validationResult.isValid) {
+      console.log(`使用环境变量指定的文件名模板: ${ENV_FILENAME_TEMPLATE}`);
+      return ENV_FILENAME_TEMPLATE;
+    }
+    
+    console.error(`环境变量指定的文件名模板无效: ${validationResult.error}`);
+    console.log(`将使用默认文件名模板: ${DEFAULT_FILENAME_TEMPLATE}`);
+  }
+  
+  return DEFAULT_FILENAME_TEMPLATE;
+}
+
 // 设置当前使用的下载目录
 const CURRENT_DOWNLOAD_DIR = getValidDownloadDirectory();
+
+// 设置当前使用的文件名模板
+const CURRENT_FILENAME_TEMPLATE = getValidFilenameTemplate();
 
 /**
  * 下载结果类型定义
@@ -545,7 +572,7 @@ class PinterestMcpServer {
             headless = Boolean(args['`headless`']);
           }
           
-          // 下载目录不再从客户端参数中提取，而是始终使用环境配置的目录
+          // 下载目录和文件名模板不再从客户端参数中提取，而是始终使用环境配置的值
         
         } else if (typeof args === 'string') {
           // Try to parse as JSON
@@ -577,7 +604,7 @@ class PinterestMcpServer {
                 headless = parsed.headless;
               }
               
-              // 不再处理download_dir参数
+              // 不再处理download_dir或filename_template参数
             }
           } catch (e) {
             // If can't parse as JSON, try to extract using regex
@@ -592,7 +619,7 @@ class PinterestMcpServer {
               limit = parseInt(limitMatch[1], 10);
             }
             
-            // 不再处理download_dir参数
+            // 不再处理download_dir或filename_template参数
           }
         }
       }
@@ -649,8 +676,11 @@ class PinterestMcpServer {
       // 最大重试次数，提高稳定性
       const maxRetries = 3;
       
-      // 使用batchDownload函数进行批量下载
-      const downloadResult = await batchDownload(validResults, keywordDir, maxRetries) as DownloadResult;
+      // 使用batchDownload函数进行批量下载，传入文件名模板
+      const downloadResult = await batchDownload(validResults, keywordDir, {
+        filenameTemplate: CURRENT_FILENAME_TEMPLATE,
+        maxRetries
+      }) as DownloadResult;
       
       // Return results in MCP protocol format
       const contentItems = [

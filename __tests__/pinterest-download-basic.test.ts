@@ -44,7 +44,13 @@ describe('Pinterest 下载功能 - 基本测试', () => {
     });
     
     // 验证调用
-    expect(axios.get).toHaveBeenCalledWith('https://example.com/image.jpg', { responseType: 'arraybuffer' });
+    expect(axios.get).toHaveBeenCalledWith('https://example.com/image.jpg', {
+      responseType: 'arraybuffer',
+      timeout: 30000,
+      headers: {
+        'User-Agent': expect.any(String)
+      }
+    });
     expect(fs.promises.writeFile).toHaveBeenCalled();
   });
 }); 

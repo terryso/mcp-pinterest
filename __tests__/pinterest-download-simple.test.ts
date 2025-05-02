@@ -53,7 +53,13 @@ describe('Pinterest Download Tests', () => {
     // 验证： 确认axios.get被正确调用
     expect(axios.get).toHaveBeenCalledWith(
       'https://example.com/image.jpg',
-      { responseType: 'arraybuffer' }
+      {
+        responseType: 'arraybuffer',
+        timeout: 30000,
+        headers: {
+          'User-Agent': expect.any(String)
+        }
+      }
     );
     
     // 验证： 确认fs.writeFile被正确调用

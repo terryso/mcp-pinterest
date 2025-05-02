@@ -144,6 +144,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 The server supports the following environment variables for configuration:
 
 - `MCP_PINTEREST_DOWNLOAD_DIR`: Specifies the root directory for downloading images. If not set, the default is the `../downloads` directory relative to the server script.
+- `MCP_PINTEREST_FILENAME_TEMPLATE`: Specifies the filename template for downloaded images. If not set, the default is `pinterest_{imageId}.{fileExtension}`.
+- `MCP_PINTEREST_PROXY_SERVER`: Specifies the proxy server to use for connecting to Pinterest. Format should be `protocol://host:port`, for example `http://127.0.0.1:7890` or `socks5://127.0.0.1:1080`.
 
 ### Usage
 
@@ -170,10 +172,75 @@ node pinterest-mcp-server.js
 
 2. If the environment variable is not set, the server will use the default download directory (relative to the server script's `../downloads`).
 
+#### Setting Filename Template
+
+You can customize the filename pattern for downloaded images using the `MCP_PINTEREST_FILENAME_TEMPLATE` environment variable:
+
+```bash
+# Linux/macOS
+export MCP_PINTEREST_FILENAME_TEMPLATE="pin_{imageId}_{timestamp}.{fileExtension}"
+# Then start the server
+node pinterest-mcp-server.js
+
+# Windows (CMD)
+set MCP_PINTEREST_FILENAME_TEMPLATE="pin_{imageId}_{timestamp}.{fileExtension}"
+# Then start the server
+node pinterest-mcp-server.js
+
+# Windows (PowerShell)
+$env:MCP_PINTEREST_FILENAME_TEMPLATE="pin_{imageId}_{timestamp}.{fileExtension}"
+# Then start the server
+node pinterest-mcp-server.js
+```
+
+The template supports the following variables:
+- `{imageId}`: The unique ID of the Pinterest image
+- `{fileExtension}`: The file extension (e.g., jpg, png)
+- `{timestamp}`: Current UTC timestamp in YYYYMMDDHHMMSS format
+- `{index}`: The index number when downloading multiple images (starts from 1)
+
+Example templates:
+- `pinterest_{imageId}.{fileExtension}` (default)
+- `pin_{timestamp}_{imageId}.{fileExtension}`
+- `pinterest_image_{index}_{imageId}.{fileExtension}`
+- `{timestamp}_pinterest.{fileExtension}`
+
+If the template is invalid (e.g., contains unsupported variables or has mismatched brackets), the server will log a warning and use the default template.
+
+#### Setting Proxy Server
+
+If you need to use a proxy to access Pinterest (especially in regions where Pinterest might be restricted), you can set the proxy configuration:
+
+```bash
+# Linux/macOS
+export MCP_PINTEREST_PROXY_SERVER="http://127.0.0.1:7890"
+# Then start the server
+node pinterest-mcp-server.js
+
+# Windows (CMD)
+set MCP_PINTEREST_PROXY_SERVER=http://127.0.0.1:7890
+# Then start the server
+node pinterest-mcp-server.js
+
+# Windows (PowerShell)
+$env:MCP_PINTEREST_PROXY_SERVER="http://127.0.0.1:7890"
+# Then start the server
+node pinterest-mcp-server.js
+```
+
+Supported proxy protocols:
+- HTTP: `http://host:port`
+- HTTPS: `https://host:port`
+- SOCKS4: `socks4://host:port`
+- SOCKS5: `socks5://host:port`
+
+The proxy configuration affects both the browser used for searching and the image downloading process.
+
 #### Notes
 
 - The server will verify the existence and writability of the download directory when starting. If the directory does not exist, it will attempt to create it; if it cannot be created or written to, the server will exit.
-- Clients should not specify download paths through parameters when calling download-related tools, as all downloads will be saved in the directory specified by the environment variable or the default directory.
+- Clients should not specify download paths or filename templates through parameters when calling download-related tools, as all downloads will use the server's environment variable configuration or defaults.
+- The server automatically sanitizes filenames by replacing illegal characters (such as `/`, `\`, `:`, `*`, `?`, `"`, `<`, `>`, `|`) with underscores.
 
 #### Interface Description
 

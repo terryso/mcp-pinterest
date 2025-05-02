@@ -9,6 +9,9 @@ const DEFAULT_HEADLESS_MODE = true;
 // 检查是否在测试环境中
 const isTestEnvironment = process.env.NODE_ENV === 'test' || process.env.JEST_WORKER_ID !== undefined;
 
+// 从环境变量获取代理设置
+const PROXY_SERVER = process.env.MCP_PINTEREST_PROXY_SERVER || '';
+
 class PinterestScraper {
   constructor() {
     this.baseUrl = 'https://www.pinterest.com';
@@ -113,6 +116,13 @@ class PinterestScraper {
               '--lang=zh-CN,zh'
             ]
           };
+          
+          // 如果设置了代理服务器，添加到启动参数中
+          if (PROXY_SERVER) {
+            console.log(`使用代理服务器: ${PROXY_SERVER}`);
+            options.args.push(`--proxy-server=${PROXY_SERVER}`);
+          }
+          
           browser = await puppeteer.launch(options);
         }
       } catch (err) {

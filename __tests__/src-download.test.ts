@@ -78,7 +78,13 @@ describe('Pinterest 下载模块', () => {
       const result = await downloadImage(pinterestResult, downloadDir);
 
       // 验证
-      expect(axios.get).toHaveBeenCalledWith('https://example.com/test.jpg', { responseType: 'arraybuffer' });
+      expect(axios.get).toHaveBeenCalledWith('https://example.com/test.jpg', {
+        responseType: 'arraybuffer',
+        timeout: 30000,
+        headers: {
+          'User-Agent': expect.any(String)
+        }
+      });
       expect(fs.promises.writeFile).toHaveBeenCalled();
       expect(result).toEqual({
         success: true,

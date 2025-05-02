@@ -1,10 +1,154 @@
----
-title: Pinterest MCP Server - Product Requirements Document (PRD) - v0.1
-status: Draft
-date: {current_date}
----
+# 1. Title: PRD for Pinterest MCP Server
 
-# Pinterest MCP Server - 产品需求文档 (PRD) v0.1
+<version>0.1.0</version>
+
+## Status: Approved
+
+## Intro
+
+本项目旨在开发一个遵循模型上下文协议 (Model Context Protocol, MCP) 的服务器。该服务器的核心功能是提供与 Pinterest 平台交互的能力，允许 MCP 客户端（如 IDE、AI 助手等）通过标准化的接口搜索 Pinterest 图片，获取图片信息，并将图片下载到指定位置。目的是为了方便将 Pinterest 的内容集成到各种支持 MCP 的工具和应用中。
+
+## Goals
+
+{
+- **Clear project objectives:** 实现一个功能性的 MCP 服务器，提供 Pinterest 图片搜索和下载服务。
+- **Measurable outcomes:** 成功处理 MCP 客户端的 `pinterest_search`, `pinterest_get_image_info`, `pinterest_search_and_download` 请求，并返回预期结果或明确错误。
+- **Success criteria:** 服务器稳定运行，能够根据关键词找到相关图片，获取图片信息，并成功下载图片到预定位置。
+- **Key performance indicators (KPIs):** (待定，例如：请求成功率、平均响应时间)
+}
+
+## Features and Requirements
+
+{
+- **Functional requirements:**
+    - 实现基于 MCP 的服务器。
+    - 提供 `pinterest_search` Tool，根据关键词搜索图片。
+    - 提供 `pinterest_get_image_info` Tool，根据图片 ID 获取详细信息。
+    - 提供 `pinterest_search_and_download` Tool，根据关键词搜索并下载图片。
+    - 图片下载到固定的服务器端目录 (`../downloads`)。
+    - 文件名使用固定格式 (`pinterest_{imageId}.{fileExtension}`)。
+- **Non-functional requirements:**
+    - 服务器应能处理并发请求（具体并发数待定）。
+    - 提供明确的错误信息给客户端。
+    - (未来) 可配置性：下载目录和文件名模板可通过环境变量配置。
+- **User experience requirements:** (主要针对客户端开发者) API 接口清晰，易于使用。
+- **Integration requirements:** 遵循 MCP 协议规范。
+- **Compliance requirements:** (待定，例如：是否需要遵守 Pinterest API 使用条款)
+}
+
+## Epic List
+
+### Epic-1: MVP Core Functionality (v0.1)
+
+此 Epic 包含了实现 Pinterest MCP 服务器基本搜索和下载功能的初始用户故事。
+
+### Epic-2: Server Configuration Enhancements
+
+此 Epic 专注于提高服务器的可配置性，例如下载目录和文件名。
+
+### Epic-N: Future Enhancements (Beyond Scope of v0.1/v0.2)
+
+包括 Pinterest 认证、更丰富的搜索、下载前确认、异步处理等未来可能的功能。
+
+## Epic 1: MVP Core Functionality - Story List
+
+- **Story US-001: Implement `pinterest_search` Tool**
+  Status: 'Complete'
+  Requirements:
+  - 接收 `keyword` (必需) 和 `limit` (可选) 参数。
+  - 调用 Pinterest API (或相应库) 执行搜索。
+  - 返回图片 ID 列表或错误信息。
+
+- **Story US-002: Implement `pinterest_get_image_info` Tool**
+  Status: 'Complete'
+  Requirements:
+  - 接收 `image_id` (必需) 参数。
+  - 调用 Pinterest API (或相应库) 获取图片详情。
+  - 返回 `image_url`, `source`, `timestamp` 或错误信息。
+
+- **Story US-003: Implement `pinterest_search_and_download` Tool**
+  Status: 'Complete'
+  Requirements:
+  - 接收 `keyword` (必需) 和 `limit` (可选) 参数。
+  - 执行搜索。
+  - 对结果中的图片进行下载。
+  - 下载到硬编码路径 `../downloads`。
+  - 文件名使用硬编码格式 `pinterest_{imageId}.{fileExtension}`。
+  - 返回成功消息或错误信息。
+
+## Epic 2: Server Configuration Enhancements - Story List
+
+- **Story US-Future-001: Configurable Download Directory**
+  Status: 'Draft'
+  Requirements:
+  - 通过 `MCP_PINTEREST_DOWNLOAD_DIR` 环境变量配置下载根目录。
+  - 未设置则使用默认 `../downloads`。
+  - 启动时验证路径有效性和写入权限。
+  - 客户端无法指定路径。
+
+- **Story US-Future-002: Custom Filename Template**
+  Status: 'Draft'
+  Requirements:
+  - 通过 `MCP_PINTEREST_FILENAME_TEMPLATE` 环境变量配置全局文件名模板。
+  - 未设置则使用默认 `pinterest_{imageId}.{fileExtension}`。
+  - 支持 `{imageId}`, `{fileExtension}`, `{timestamp}`, `{index}` 变量。
+  - 验证模板有效性，清理非法字符，无效则回退默认模板。
+  - 客户端无法指定模板。
+
+## Technology Stack
+
+| Technology                | Description                                                 |
+| ------------------------- | ----------------------------------------------------------- |
+| Language                  | TypeScript                                                  |
+| Runtime                   | Node.js                                                     |
+| MCP SDK                   | `@modelcontextprotocol/sdk`                                 |
+| Pinterest Interaction     | `@myno_21/pinterest-scraper` ( 主要库), `axios`, `cheerio`, `puppeteer-core` (可能为辅助或依赖) |
+| Testing                   | Jest, ts-jest, Sinon                                        |
+| Development Environment   | ts-node-dev, Babel                                          |
+| Package Manager           | npm (implied by package.json/package-lock.json)             |
+| Containerization          | Docker (implied by Dockerfile)                              |
+
+## Reference
+
+- **内部文档:**
+    - [架构文档](./architecture.md): 详细描述了系统组件、数据流和部署。
+- **核心库:**
+    - Model Context Protocol SDK: `@modelcontextprotocol/sdk`
+    - Pinterest Scraper: `@myno_21/pinterest-scraper`
+
+## Data Models, API Specs, Schemas, etc...
+
+(当前版本主要是 Tool 的输入输出定义，已在用户故事中描述)
+
+## Project Structure
+
+(基于 architecture.md 描述的主要组件)
+
+```text
+.
+├── pinterest-mcp-server.ts  # MCP 服务器接口, 工具处理
+├── pinterest-scraper.js     # Pinterest 爬虫模块
+├── src/
+│   └── pinterest-download.js  # 下载模块 (根据架构文档，实际可能为 .js)
+├── dist/                    # 编译后的 JS 文件
+├── downloads/               # 默认图片下载目录
+├── tests/                   # 测试文件
+├── .ai/                     # PRD, 用户故事, 架构文档等
+│   ├── prd.md
+│   ├── architecture.md
+│   └── ... (用户故事文件)
+├── node_modules/
+├── package.json
+├── tsconfig.json
+├── Dockerfile
+└── ... (其他配置文件如 .env, jest.config, etc.)
+```
+
+## Change Log
+
+| Change        | Story ID | Description       |
+| ------------- | -------- | ----------------- |
+| Initial draft | N/A      | 创建 PRD v0.1      |
 
 ## 1. 引言
 
