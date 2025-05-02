@@ -26,8 +26,20 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18.x' # 您可以根据项目需要调整 Node.js 版本
+          node-version: '18.x'
           registry-url: 'https://registry.npmjs.org/'
+          # 添加 scope 参数，如果您的包是带作用域的包（如 @your-scope/package-name）
+          # scope: '@your-scope'
+
+      # 创建 .npmrc 确保正确的认证配置
+      - name: Setup .npmrc file for NPM registry authentication
+        run: |
+          echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > .npmrc
+          echo "registry=https://registry.npmjs.org/" >> .npmrc
+          echo "always-auth=true" >> .npmrc
+          cat .npmrc
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Install dependencies
         run: npm install
@@ -38,8 +50,10 @@ jobs:
       - name: Install semantic-release and plugins
         run: npm install semantic-release @semantic-release/git @semantic-release/changelog @semantic-release/npm @semantic-release/github --save-dev
 
+      # 明确配置 NPM_TOKEN
       - name: Run semantic-release
-        run: npx semantic-release
         env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # GITHUB_TOKEN is automatically provided by GitHub Actions 
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npx semantic-release 
