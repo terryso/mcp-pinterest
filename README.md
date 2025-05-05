@@ -1,7 +1,7 @@
 # Pinterest MCP Server
 
-[![npm version](https://badge.fury.io/js/mcp-pinterest.svg)](https://badge.fury.io/js/mcp-pinterest)
-![NPM Downloads](https://img.shields.io/npm/dw/mcp-pinterest)
+[![npm version](https://badge.fury.io/js/pinterest-mcp-server.svg)](https://badge.fury.io/js/pinterest-mcp-server)
+![NPM Downloads](https://img.shields.io/npm/dw/pinterest-mcp-server)
 [![smithery badge](https://smithery.ai/badge/@terryso/mcp-pinterest)](https://smithery.ai/server/@terryso/mcp-pinterest)
 
 A Model Context Protocol (MCP) server for Pinterest image search and information retrieval.
