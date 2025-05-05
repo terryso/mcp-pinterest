@@ -1,3 +1,10 @@
+# [1.2.0](https://github.com/terryso/mcp-pinterest/compare/v1.1.0...v1.2.0) (2025-05-05)
+
+
+### Features
+
+* 去掉没用的依赖 ([f678443](https://github.com/terryso/mcp-pinterest/commit/f6784438ec166558a1f08971a0b9ecd4920e9646))
+
 # [1.1.0](https://github.com/terryso/mcp-pinterest/compare/v1.0.0...v1.1.0) (2025-05-02)
 
 
