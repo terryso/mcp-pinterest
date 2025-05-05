@@ -245,6 +245,29 @@
 *   **US-Future-002 (新): 自定义文件名模板**: **(实现方式: 服务器环境变量)** 服务器管理员可以通过设置 `MCP_PINTEREST_FILENAME_TEMPLATE` 环境变量来定义全局的文件命名规则模板。如果该环境变量未设置，服务器将使用默认模板 (`pinterest_{imageId}.{fileExtension}`)。客户端无法在调用时指定命名模板。(优先级: 高)
     *   *注: 支持的模板变量应包含 `{imageId}`, `{fileExtension}`, `{timestamp}` (如 `YYYYMMDDHHMMSS`), `{index}` (批次下载序号)。服务器应验证模板有效性并清理生成的文件名中的非法字符。若模板无效，应记录日志并使用默认模板。*
 *   **US-Future-003 (新): 下载前确认/选择**: 作为 MCP 客户端，我想要在执行批量下载前先预览搜索到的图片列表 (可能通过 `pinterest_search` 返回的结果)，并能选择性地指定下载哪些图片 (可能通过未来的 `pinterest_download_image` 或 `pinterest_batch_download_images` 工具实现)，以便只下载我真正需要的图片。
+*   **US-Future-004 (新): 从 Pin URL 下载图片**: 作为 MCP 客户端，我想要提供一个 Pinterest Pin 页面的 URL，并指定一个数量 N，让服务器从该页面抓取并下载最多 N 张相关的图片，以便快速获取与特定 Pin 相关的视觉内容。
+    *   **Tool**: `pinterest_download_from_pin_url`
+    *   **输入**:
+        *   `pin_url`: 字符串 (必需, Pinterest Pin 页面的完整 URL, 例如 "https://www.pinterest.com/pin/460633868155800959/")
+        *   `limit`: 整数 (可选, 最多需要下载的图片数量，若不提供可能有默认值或限制)
+    *   **输出**:
+        *   **成功**: 返回表示操作成功的消息（例如，"成功从 URL 下载 X 张图片"）。
+        *   **失败**: 如果 URL 无效、页面无法访问、无法从中提取图片、下载过程中发生错误，或所有找到的图片都下载失败，返回具体的错误信息给客户端。
+    *   **行为**:
+        *   服务器访问并解析提供的 `pin_url`。
+        *   尝试从页面内容中识别并提取图片 URL（可能包括主图和"更多相似"等区域的图片）。
+        *   对于提取到的图片 URL（最多 `limit` 张），尝试下载到服务器的预定义目录（由 `MCP_PINTEREST_DOWNLOAD_DIR` 环境变量或默认值决定）。
+        *   文件名遵循预定义的模板（由 `MCP_PINTEREST_FILENAME_TEMPLATE` 环境变量或默认值决定）。
+    *   **验收标准**:
+        *   客户端可以通过 MCP 调用 `pinterest_download_from_pin_url` Tool。
+        *   调用时必须提供有效的 `pin_url` 参数。
+        *   可以指定 `limit` 参数。
+        *   如果成功下载至少一张图片，Tool 应返回成功消息。
+        *   下载的图片应保存在配置的下载目录下。
+        *   下载的文件名应遵循配置的模板。
+        *   如果 URL 无效或无法处理，返回清晰的错误信息。
+        *   如果在下载过程中遇到错误，报告相应的错误信息。
+    *   **优先级**: (待定)
 *   **Pinterest 认证**: 支持用户通过 OAuth 或 API Key 进行认证，以访问非公开内容或获取更高的速率限制。
 *   **更丰富的搜索参数**: 支持更多 Pinterest API 提供的搜索过滤条件（如画板 ID、图片尺寸、颜色等）。
 *   **Tool: `pinterest_download_image`**: 提供一个单独的 Tool，允许客户端通过图片 ID (以及可选的目标路径和文件名模板 - *注: 如果这些也改为环境变量控制，则此 Tool 只需图片 ID*) 直接下载图片。 (此工具可支持 US-Future-003)

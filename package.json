@@ -20,9 +20,9 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^0.6.0",
-    "@myno_21/pinterest-scraper": "^1.0.4",
     "axios": "^1.8.1",
     "cheerio": "^1.0.0",
+    "node-fetch": "^3.3.2",
     "pinterest-mcp-server": "^1.0.0",
     "puppeteer-core": "^24.3.0"
   },

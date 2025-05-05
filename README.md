@@ -20,6 +20,47 @@ A Model Context Protocol (MCP) server for Pinterest image search and information
 
 ## Installation
 
+### Using NPX (Recommended)
+
+The easiest way to use Pinterest MCP Server is via npx:
+
+```bash
+npx pinterest-mcp-server
+```
+
+You can configure the server with command-line options:
+
+```bash
+# Specify download directory
+npx pinterest-mcp-server --downloadDir /path/to/downloads
+
+# Specify filename template
+npx pinterest-mcp-server --filenameTemplate "pinterest_{id}"
+
+# Specify both options
+npx pinterest-mcp-server --downloadDir ./images --filenameTemplate "pinterest_{id}"
+```
+
+### Global Installation
+
+To install the package globally and use it directly from the command line:
+
+```bash
+npm install -g pinterest-mcp-server
+```
+
+After installation, you can run the server with:
+
+```bash
+pinterest-mcp-server
+```
+
+With the same command line options as the NPX version:
+
+```bash
+pinterest-mcp-server --downloadDir /path/to/downloads --filenameTemplate "pinterest_{id}"
+```
+
 ### Installing via Smithery
 
 To install mcp-pinterest for Claude Desktop automatically via [Smithery](https://smithery.ai/server/mcp-pinterest):
@@ -28,7 +69,7 @@ To install mcp-pinterest for Claude Desktop automatically via [Smithery](https:/
 npx -y @smithery/cli install mcp-pinterest --client claude
 ```
 
-### Manual
+### Manual Installation
 
 1. Clone this repository:
    ```bash
@@ -41,16 +82,15 @@ npx -y @smithery/cli install mcp-pinterest --client claude
    npm install
    ```
 
-## Usage
+3. Build the server:
+   ```bash
+   npm run build
+   ```
 
-### Command Mode (Recommended)
-
-Build the server:
-```bash
-npm run build
-```
-
-You can now use this server as an MCP server in Cursor.
+4. Run the server:
+   ```bash
+   npm start
+   ```
 
 ## Configuring as MCP Server in Cursor
 
@@ -71,6 +111,44 @@ You can now use this server as an MCP server in Cursor.
    }
    ```
 5. Click "Save"
+
+### Alternative: Using NPX for Cursor Configuration
+
+You can also configure Cursor to use the npx version of the server:
+
+1. Open Cursor IDE
+2. Go to Settings (⚙️) > Extensions > MCP
+3. Click "Add Server"
+4. Enter the following details:
+   - Name: Pinterest MCP
+   - Type: Command
+   - Command: `npx`
+   - Args: `["pinterest-mcp-server"]`
+5. Click "Save"
+
+### Complete Configuration Example with Environment Variables
+
+For the most flexibility, you can configure the server with environment variables in your Cursor MCP configuration:
+
+```json
+"pinterest": {
+  "command": "npx",
+  "env": {
+    "MCP_PINTEREST_DOWNLOAD_DIR": "/Users/xxx/Desktop/Images",
+    "MCP_PINTEREST_FILENAME_TEMPLATE": "pin_{imageId}_{timestamp}.{fileExtension}",
+    "MCP_PINTEREST_PROXY_SERVER": "http://127.0.0.1:7890"
+  },
+  "args": ["pinterest-mcp-server"]
+}
+```
+
+This configuration:
+- Uses npx to run the server
+- Sets a custom download directory on your desktop
+- Uses a custom filename template with both image ID and timestamp
+- Configures a proxy server for users in regions where Pinterest might be blocked
+
+Add this to your `~/.cursor/mcp.json` file or set up through the Cursor IDE interface.
 
 ## Available MCP Functions
 
@@ -139,58 +217,97 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Configuration Options
 
+### Command Line Options (NPX Mode)
+
+When using the server via npx, you can configure it using the following command line options:
+
+- `--downloadDir`: Specifies the root directory for downloading images
+  ```bash
+  npx pinterest-mcp-server --downloadDir /path/to/downloads
+  ```
+
+- `--filenameTemplate`: Specifies the filename template for downloaded images
+  ```bash
+  npx pinterest-mcp-server --filenameTemplate "pin_{imageId}_{timestamp}"
+  ```
+
+- `--port`: Specifies the port for the server to listen on (default: 3000)
+  ```bash
+  npx pinterest-mcp-server --port 8080
+  ```
+
+- `--proxyServer`: Specifies the proxy server to use for connecting to Pinterest
+  ```bash
+  npx pinterest-mcp-server --proxyServer "http://127.0.0.1:7890"
+  ```
+
+You can combine multiple options:
+```bash
+npx pinterest-mcp-server --downloadDir ./images --filenameTemplate "pinterest_{id}" --port 8080 --proxyServer "http://127.0.0.1:7890"
+```
+
 ### Environment Variables
 
-The server supports the following environment variables for configuration:
+The server also supports the following environment variables for configuration:
 
 - `MCP_PINTEREST_DOWNLOAD_DIR`: Specifies the root directory for downloading images. If not set, the default is the `../downloads` directory relative to the server script.
 - `MCP_PINTEREST_FILENAME_TEMPLATE`: Specifies the filename template for downloaded images. If not set, the default is `pinterest_{imageId}.{fileExtension}`.
 - `MCP_PINTEREST_PROXY_SERVER`: Specifies the proxy server to use for connecting to Pinterest. Format should be `protocol://host:port`, for example `http://127.0.0.1:7890` or `socks5://127.0.0.1:1080`.
 
+These environment variables can be set in several ways:
+1. Directly in your terminal (as shown in the examples below)
+2. In your Cursor MCP configuration through the `env` field (see [Complete Configuration Example](#complete-configuration-example-with-environment-variables))
+3. In a `.env` file in the project root directory
+4. Through command line options with npx (as shown in the [Command Line Options](#command-line-options-npx-mode) section)
+
 ### Usage
 
 #### Setting Download Directory
 
-1. Set the download directory using an environment variable (recommended method):
+1. Using npx with command line options:
+```bash
+npx pinterest-mcp-server --downloadDir /path/to/your/download/directory
+```
+
+2. Set the download directory using an environment variable:
 
 ```bash
 # Linux/macOS
 export MCP_PINTEREST_DOWNLOAD_DIR=/path/to/your/download/directory
-# Then start the server
-node pinterest-mcp-server.js
+npx pinterest-mcp-server
 
 # Windows (CMD)
 set MCP_PINTEREST_DOWNLOAD_DIR=C:\path\to\your\download\directory
-# Then start the server
-node pinterest-mcp-server.js
+npx pinterest-mcp-server
 
 # Windows (PowerShell)
 $env:MCP_PINTEREST_DOWNLOAD_DIR="C:\path\to\your\download\directory"
-# Then start the server
-node pinterest-mcp-server.js
+npx pinterest-mcp-server
 ```
 
-2. If the environment variable is not set, the server will use the default download directory (relative to the server script's `../downloads`).
+3. If the environment variable is not set, the server will use the default download directory (relative to the server script's `../downloads`).
 
 #### Setting Filename Template
 
-You can customize the filename pattern for downloaded images using the `MCP_PINTEREST_FILENAME_TEMPLATE` environment variable:
+1. Using npx with command line options:
+```bash
+npx pinterest-mcp-server --filenameTemplate "pin_{imageId}_{timestamp}.{fileExtension}"
+```
+
+2. Using an environment variable:
 
 ```bash
 # Linux/macOS
 export MCP_PINTEREST_FILENAME_TEMPLATE="pin_{imageId}_{timestamp}.{fileExtension}"
-# Then start the server
-node pinterest-mcp-server.js
+npx pinterest-mcp-server
 
 # Windows (CMD)
 set MCP_PINTEREST_FILENAME_TEMPLATE="pin_{imageId}_{timestamp}.{fileExtension}"
-# Then start the server
-node pinterest-mcp-server.js
+npx pinterest-mcp-server
 
 # Windows (PowerShell)
 $env:MCP_PINTEREST_FILENAME_TEMPLATE="pin_{imageId}_{timestamp}.{fileExtension}"
-# Then start the server
-node pinterest-mcp-server.js
+npx pinterest-mcp-server
 ```
 
 The template supports the following variables:
@@ -211,21 +328,25 @@ If the template is invalid (e.g., contains unsupported variables or has mismatch
 
 If you need to use a proxy to access Pinterest (especially in regions where Pinterest might be restricted), you can set the proxy configuration:
 
+1. Using npx with command line options:
+```bash
+npx pinterest-mcp-server --proxyServer "http://127.0.0.1:7890"
+```
+
+2. Using an environment variable:
+
 ```bash
 # Linux/macOS
 export MCP_PINTEREST_PROXY_SERVER="http://127.0.0.1:7890"
-# Then start the server
-node pinterest-mcp-server.js
+npx pinterest-mcp-server
 
 # Windows (CMD)
 set MCP_PINTEREST_PROXY_SERVER=http://127.0.0.1:7890
-# Then start the server
-node pinterest-mcp-server.js
+npx pinterest-mcp-server
 
 # Windows (PowerShell)
 $env:MCP_PINTEREST_PROXY_SERVER="http://127.0.0.1:7890"
-# Then start the server
-node pinterest-mcp-server.js
+npx pinterest-mcp-server
 ```
 
 Supported proxy protocols:
