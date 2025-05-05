@@ -1,3 +1,5 @@
+[![MseeP.ai Security Assessment Badge](https://mseep.net/pr/terryso-mcp-pinterest-badge.png)](https://mseep.ai/app/terryso-mcp-pinterest)
+
 # Pinterest MCP Server
 
 [![npm version](https://badge.fury.io/js/pinterest-mcp-server.svg)](https://badge.fury.io/js/pinterest-mcp-server)
