@@ -1,6 +1,6 @@
 {
   "name": "pinterest-mcp-server",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "A Pinterest Model Context Protocol (MCP) server for image search and information retrieval",
   "main": "dist/index.js",
   "type": "module",
