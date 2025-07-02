@@ -377,3 +377,7 @@ The server provides the following MCP tools:
 3. `pinterest_search_and_download`: Search and download Pinterest images
 
 For detailed interface parameter references, please refer to the MCP tool definitions. 
+
+## ⭐ Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=terryso/mcp-pinterest&type=Date)](https://www.star-history.com/#terryso/mcp-pinterest&Date)
