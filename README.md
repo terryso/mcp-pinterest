@@ -9,6 +9,10 @@
 
 A Model Context Protocol (MCP) server for Pinterest image search and information retrieval.
 
+<a href="https://glama.ai/mcp/servers/@terryso/mcp-pinterest">
+  <img width="380" height="200" src="https://glama.ai/mcp/servers/@terryso/mcp-pinterest/badge" alt="mcp-pinterest MCP server" />
+</a>
+
 ## Features
 
 - Search for images on Pinterest by keywords
