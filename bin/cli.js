@@ -1,8 +1,14 @@
 #!/usr/bin/env node
 
 /**
- * CLI 脚本，用于通过 npx 启动 Pinterest MCP 服务器
+ * CLI entry for `npx pinterest-mcp-server` and the global bin.
+ * MCP JSON-RPC owns stdout, so every log from this process goes to stderr.
  */
+
+const writeToStderr = console.error.bind(console);
+console.log = writeToStderr;
+console.info = writeToStderr;
+console.debug = writeToStderr;
 
 // 解析命令行参数
 const args = process.argv.slice(2);
@@ -18,28 +24,29 @@ for (let i = 0; i < args.length; i++) {
   }
 }
 
-// 设置端口，默认3000或从参数获取
-const port = options.port || process.env.PORT || 3000;
-
-console.log('🚀 正在启动 MCP Pinterest 服务器...');
-console.log('📋 服务器选项:', options);
+if (options.port) {
+  console.error('Ignoring --port: this MCP server speaks stdio and does not listen on a TCP port.');
+}
 
 // 设置环境变量
-if (options.downloadDir) {
+if (options.downloadDir && options.downloadDir !== true) {
   process.env.MCP_PINTEREST_DOWNLOAD_DIR = options.downloadDir;
 }
 
-if (options.filenameTemplate) {
+if (options.filenameTemplate && options.filenameTemplate !== true) {
   process.env.MCP_PINTEREST_FILENAME_TEMPLATE = options.filenameTemplate;
 }
 
+if (options.proxyServer && options.proxyServer !== true) {
+  process.env.MCP_PINTEREST_PROXY_SERVER = options.proxyServer;
+  console.error('Using proxy from --proxyServer');
+}
+
+console.error('Starting Pinterest MCP server on stdio');
+
 // 直接导入并运行服务器
 import('../dist/pinterest-mcp-server.js')
-  .then(() => {
-    console.log(`✅ 服务器已在端口 ${port} 成功启动`);
-    console.log(`🔗 访问: http://localhost:${port}`);
-  })
   .catch(error => {
-    console.error('❌ 服务器启动失败:', error);
+    console.error('服务器启动失败:', error);
     process.exit(1);
-  }); 
+  });

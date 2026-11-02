@@ -1,4 +1,5 @@
 #!/usr/bin/env bun
+import './src/stdio-guard.js';
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import {
@@ -16,6 +17,7 @@ import {
   validateTemplate, 
   generateFileName 
 } from './src/filename-template.js';
+import { escapeToolText } from './src/escape-tool-text.js';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -41,7 +43,7 @@ function validateDownloadDirectory(dirPath: string): boolean {
     // 如果目录不存在，尝试创建
     if (!fs.existsSync(dirPath)) {
       fs.mkdirSync(dirPath, { recursive: true });
-      console.log(`创建下载目录: ${dirPath}`);
+      console.error(`创建下载目录: ${dirPath}`);
     }
     
     // 验证目录是否可写
@@ -59,7 +61,7 @@ function validateDownloadDirectory(dirPath: string): boolean {
 function getValidDownloadDirectory(): string {
   if (ENV_DOWNLOAD_DIR) {
     if (validateDownloadDirectory(ENV_DOWNLOAD_DIR)) {
-      console.log(`使用环境变量指定的下载目录: ${ENV_DOWNLOAD_DIR}`);
+      console.error(`使用环境变量指定的下载目录: ${ENV_DOWNLOAD_DIR}`);
       return ENV_DOWNLOAD_DIR;
     }
     
@@ -69,7 +71,7 @@ function getValidDownloadDirectory(): string {
   
   // 验证默认目录
   if (validateDownloadDirectory(DEFAULT_DOWNLOAD_DIR)) {
-    console.log(`使用默认下载目录: ${DEFAULT_DOWNLOAD_DIR}`);
+    console.error(`使用默认下载目录: ${DEFAULT_DOWNLOAD_DIR}`);
     return DEFAULT_DOWNLOAD_DIR;
   }
   
@@ -82,12 +84,12 @@ function getValidFilenameTemplate(): string {
   if (ENV_FILENAME_TEMPLATE) {
     const validationResult = validateTemplate(ENV_FILENAME_TEMPLATE);
     if (validationResult.isValid) {
-      console.log(`使用环境变量指定的文件名模板: ${ENV_FILENAME_TEMPLATE}`);
+      console.error(`使用环境变量指定的文件名模板: ${ENV_FILENAME_TEMPLATE}`);
       return ENV_FILENAME_TEMPLATE;
     }
     
     console.error(`环境变量指定的文件名模板无效: ${validationResult.error}`);
-    console.log(`将使用默认文件名模板: ${DEFAULT_FILENAME_TEMPLATE}`);
+    console.error(`将使用默认文件名模板: ${DEFAULT_FILENAME_TEMPLATE}`);
   }
   
   return DEFAULT_FILENAME_TEMPLATE;
@@ -98,6 +100,40 @@ const CURRENT_DOWNLOAD_DIR = getValidDownloadDirectory();
 
 // 设置当前使用的文件名模板
 const CURRENT_FILENAME_TEMPLATE = getValidFilenameTemplate();
+
+/**
+ * Read the package version from the repo root.
+ * Compiled output lives in `dist/`, so both locations are checked.
+ * @returns Semver string advertised by the MCP server
+ */
+function readPackageVersion(): string {
+  const candidates = [
+    path.join(__dirname, 'package.json'),
+    path.join(__dirname, '..', 'package.json'),
+  ];
+
+  for (const candidate of candidates) {
+    try {
+      if (!fs.existsSync(candidate)) {
+        continue;
+      }
+      const parsed: unknown = JSON.parse(fs.readFileSync(candidate, 'utf8'));
+      if (
+        typeof parsed === 'object' &&
+        parsed !== null &&
+        'version' in parsed &&
+        typeof parsed.version === 'string' &&
+        parsed.version.length > 0
+      ) {
+        return parsed.version;
+      }
+    } catch {
+      // Try the next candidate. A missing version must not block startup.
+    }
+  }
+
+  return '1.2.1';
+}
 
 /**
  * 下载结果类型定义
@@ -132,7 +168,7 @@ export class PinterestMcpServer {
     this.server = new Server(
       {
         name: 'pinterest-mcp-server',
-        version: '1.0.0',
+        version: readPackageVersion(),
       },
       {
         capabilities: {
@@ -442,7 +478,7 @@ export class PinterestMcpServer {
       const contentItems = [
         {
           type: 'text',
-          text: `Found ${validResults.length} images related to "${keyword}" on Pinterest`
+          text: `Found ${validResults.length} images related to "${escapeToolText(keyword)}" on Pinterest`
         }
       ];
       
@@ -450,20 +486,20 @@ export class PinterestMcpServer {
       validResults.forEach((result, index) => {
         contentItems.push({
           type: 'text',
-          text: `Image ${index + 1}: ${result.title || 'No title'}`
+          text: `Image ${index + 1}: ${escapeToolText(result.title || 'No title')}`
         });
         
         // Add image link
         contentItems.push({
           type: 'text',
-          text: `Link: ${result.image_url || 'No link'}`
+          text: `Link: ${escapeToolText(result.image_url || 'No link')}`
         });
         
         // Add original page link (if available)
         if (result.link && result.link !== result.image_url) {
           contentItems.push({
             type: 'text',
-            text: `Original page: ${result.link}`
+            text: `Original page: ${escapeToolText(result.link)}`
           });
         }
         
@@ -485,7 +521,7 @@ export class PinterestMcpServer {
         content: [
           {
             type: 'text',
-            text: `Error during search: ${error.message}`
+            text: `Error during search: ${escapeToolText(error.message)}`
           }
         ]
       };
@@ -510,7 +546,7 @@ export class PinterestMcpServer {
           {
             type: 'text',
             text: JSON.stringify({
-              image_url: imageUrl,
+              image_url: escapeToolText(imageUrl),
               source: 'Pinterest',
               timestamp: new Date().toISOString(),
             }, null, 2),
@@ -523,7 +559,7 @@ export class PinterestMcpServer {
         content: [
           {
             type: 'text',
-            text: `Error getting image info: ${error.message}`,
+            text: `Error getting image info: ${escapeToolText(error.message)}`,
           },
         ],
       };
@@ -642,7 +678,7 @@ export class PinterestMcpServer {
           content: [
             {
               type: 'text',
-              text: `创建下载目录失败: ${dirError.message}`
+              text: `创建下载目录失败: ${escapeToolText(dirError.message)}`
             }
           ]
         };
@@ -674,7 +710,7 @@ export class PinterestMcpServer {
       const contentItems = [
         {
           type: 'text',
-          text: `搜索并下载了 ${validResults.length} 张与"${keyword}"相关的图片`
+          text: `搜索并下载了 ${validResults.length} 张与"${escapeToolText(keyword)}"相关的图片`
         },
         {
           type: 'text',
@@ -686,17 +722,17 @@ export class PinterestMcpServer {
       downloadResult.downloaded.forEach((result: {success: boolean; id: string; path: string; url: string}, index: number) => {
         contentItems.push({
           type: 'text',
-          text: `图片 ${index + 1}: ${validResults[index]?.title || 'Unknown Title'}`
+          text: `图片 ${index + 1}: ${escapeToolText(validResults[index]?.title || 'Unknown Title')}`
         });
         
         contentItems.push({
           type: 'text',
-          text: `链接: ${result.url}`
+          text: `链接: ${escapeToolText(result.url)}`
         });
         
         contentItems.push({
           type: 'text',
-          text: `保存位置: ${result.path}`
+          text: `保存位置: ${escapeToolText(result.path)}`
         });
         
         // Add separator (except for last result)
@@ -718,12 +754,12 @@ export class PinterestMcpServer {
         downloadResult.failed.forEach((failed: {url: string; error: string}, index: number) => {
           contentItems.push({
             type: 'text',
-            text: `失败 ${index + 1}: ${failed.url}`
+            text: `失败 ${index + 1}: ${escapeToolText(failed.url)}`
           });
           
           contentItems.push({
             type: 'text',
-            text: `错误: ${failed.error}`
+            text: `错误: ${escapeToolText(failed.error)}`
           });
           
           // Add separator (except for last result)
@@ -745,7 +781,7 @@ export class PinterestMcpServer {
         content: [
           {
             type: 'text',
-            text: `搜索和下载过程中出错: ${error.message}`
+            text: `搜索和下载过程中出错: ${escapeToolText(error.message)}`
           }
         ]
       };
@@ -759,7 +795,7 @@ export class PinterestMcpServer {
     try {
       const transport = new StdioServerTransport();
       await this.server.connect(transport);
-      console.log('Pinterest MCP server running via stdio');
+      console.error('Pinterest MCP server running via stdio');
     } catch (error) {
       console.error('Failed to start server:', error);
       process.exit(1);
