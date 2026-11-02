@@ -24,7 +24,7 @@ export async function startServer(options = {}) {
 // 如果直接执行这个文件，则启动服务器
 if (import.meta.url === `file://${process.argv[1]}`) {
   startServer()
-    .then(() => console.log('服务器已启动'))
+    .then(() => console.error('服务器已启动'))
     .catch(err => {
       console.error('服务器启动失败:', err);
       process.exit(1);

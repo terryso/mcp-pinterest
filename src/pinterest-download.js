@@ -23,7 +23,7 @@ if (PROXY_ENABLED) {
   
   if (proxyMatch) {
     const [, protocol, host, port] = proxyMatch;
-    console.log(`下载图片使用代理: ${protocol}://${host}:${port}`);
+    console.error(`下载图片使用代理: ${protocol}://${host}:${port}`);
     
     axiosConfig.proxy = {
       protocol,
@@ -116,7 +116,7 @@ export async function downloadImage(pinterestResult, downloadDir, options = {}) 
         const delay = 2 ** retries * 1000;
         // Only log errors when not in a test environment
         if (process.env.NODE_ENV !== 'test') {
-          console.log(`下载重试 (${retries + 1}/${maxRetries}) 延迟 ${delay}ms: ${pinterestResult.image_url}`);
+          console.error(`下载重试 (${retries + 1}/${maxRetries}) 延迟 ${delay}ms: ${pinterestResult.image_url}`);
         }
         await new Promise(resolve => setTimeout(resolve, delay));
         retries++;

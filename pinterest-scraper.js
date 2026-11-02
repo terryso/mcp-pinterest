@@ -119,7 +119,7 @@ class PinterestScraper {
           
           // 如果设置了代理服务器，添加到启动参数中
           if (PROXY_SERVER) {
-            console.log(`使用代理服务器: ${PROXY_SERVER}`);
+            console.error(`使用代理服务器: ${PROXY_SERVER}`);
             options.args.push(`--proxy-server=${PROXY_SERVER}`);
           }
           

@@ -4,10 +4,13 @@
 
 [![npm version](https://badge.fury.io/js/pinterest-mcp-server.svg)](https://badge.fury.io/js/pinterest-mcp-server)
 ![NPM Downloads](https://img.shields.io/npm/dw/pinterest-mcp-server)
-[![smithery badge](https://smithery.ai/badge/@terryso/mcp-pinterest)](https://smithery.ai/server/@terryso/mcp-pinterest)
 [![Verified on MseeP](https://mseep.ai/badge.svg)](https://mseep.ai/app/23da55f4-6d6a-4dc9-af31-cd6073eb1b27)
 
 A Model Context Protocol (MCP) server for Pinterest image search and information retrieval.
+
+This project is an **unofficial scraper**. It reads public Pinterest pages with a headless browser and does not use the official Pinterest API, which may conflict with Pinterest's Terms of Service. It is meant for personal and local development use. Pinterest's own products, and any official MCP server, are separate.
+
+`pinterest-mcp-server` speaks MCP over **stdio**. Running the command does not open a website. Configure it in an MCP client (Cursor, Claude Desktop, or another client that launches a stdio server) with `npx -y pinterest-mcp-server` or the global `pinterest-mcp-server` bin.
 
 ## Features
 
@@ -66,13 +69,15 @@ With the same command line options as the NPX version:
 pinterest-mcp-server --downloadDir /path/to/downloads --filenameTemplate "pinterest_{id}"
 ```
 
-### Installing via Smithery
+### Smithery (unavailable)
 
-To install mcp-pinterest for Claude Desktop automatically via [Smithery](https://smithery.ai/server/mcp-pinterest):
+Do not use the old Smithery one-click install. The server page on smithery.ai returns **404**, so this command cannot install the server:
 
 ```bash
 npx -y @smithery/cli install mcp-pinterest --client claude
 ```
+
+Configure Cursor or Claude Desktop directly, as shown below. `Dockerfile` and `smithery.yaml` remain in the repo for people who run the stdio process themselves. They do not bring the Smithery listing back.
 
 ### Manual Installation
 
@@ -128,8 +133,27 @@ You can also configure Cursor to use the npx version of the server:
    - Name: Pinterest MCP
    - Type: Command
    - Command: `npx`
-   - Args: `["pinterest-mcp-server"]`
+   - Args: `["-y", "pinterest-mcp-server"]`
 5. Click "Save"
+
+`-y` lets the client install the package without an interactive prompt.
+
+### Claude Desktop
+
+Claude Desktop does not use the Smithery install. Edit the Claude Desktop config (`claude_desktop_config.json`) and restart the app:
+
+```json
+{
+  "mcpServers": {
+    "pinterest": {
+      "command": "npx",
+      "args": ["-y", "pinterest-mcp-server"]
+    }
+  }
+}
+```
+
+A global install works the same way with `"command": "pinterest-mcp-server"` and `"args": []`.
 
 ### Complete Configuration Example with Environment Variables
 
@@ -143,7 +167,7 @@ For the most flexibility, you can configure the server with environment variable
     "MCP_PINTEREST_FILENAME_TEMPLATE": "pin_{imageId}_{timestamp}.{fileExtension}",
     "MCP_PINTEREST_PROXY_SERVER": "http://127.0.0.1:7890"
   },
-  "args": ["pinterest-mcp-server"]
+  "args": ["-y", "pinterest-mcp-server"]
 }
 ```
 
@@ -191,6 +215,17 @@ The AI will use the MCP server to search Pinterest and display the results.
 
 *Screenshot showing a search for 20 images of 三上悠亚 with all images successfully downloaded.*
 
+## Docker
+
+The repository includes a `Dockerfile`. It builds the TypeScript server and starts it on stdio (`node dist/pinterest-mcp-server.js`):
+
+```bash
+docker build -t pinterest-mcp-server .
+docker run -i --rm pinterest-mcp-server
+```
+
+Glama's directory can still show the server as unavailable until the repository owner Claims the listing and registers this Dockerfile in the Glama admin UI. That step needs the owner's Glama account.
+
 ## Development
 
 ### Project Structure
@@ -210,7 +245,7 @@ To add new MCP functions:
 
 ## Troubleshooting
 
-- If the server fails to start, check if the port is already in use
+- If the client cannot connect, confirm it launches this command as a stdio MCP server. Logs belong on stderr; stdout is only for JSON-RPC
 - Ensure all dependencies are correctly installed with `npm install`
 - Make sure TypeScript is properly configured with a `tsconfig.json` file
 - If you encounter build errors, try running `npm install -D typescript @types/node`
@@ -236,19 +271,16 @@ When using the server via npx, you can configure it using the following command 
   npx pinterest-mcp-server --filenameTemplate "pin_{imageId}_{timestamp}"
   ```
 
-- `--port`: Specifies the port for the server to listen on (default: 3000)
-  ```bash
-  npx pinterest-mcp-server --port 8080
-  ```
+This server does not listen on a TCP port. MCP clients talk to it over stdin and stdout. `--port` is ignored.
 
-- `--proxyServer`: Specifies the proxy server to use for connecting to Pinterest
+- `--proxyServer`: Specifies the proxy server to use for connecting to Pinterest. This sets `MCP_PINTEREST_PROXY_SERVER`.
   ```bash
   npx pinterest-mcp-server --proxyServer "http://127.0.0.1:7890"
   ```
 
 You can combine multiple options:
 ```bash
-npx pinterest-mcp-server --downloadDir ./images --filenameTemplate "pinterest_{id}" --port 8080 --proxyServer "http://127.0.0.1:7890"
+npx pinterest-mcp-server --downloadDir ./images --filenameTemplate "pinterest_{id}" --proxyServer "http://127.0.0.1:7890"
 ```
 
 ### Environment Variables
@@ -261,9 +293,10 @@ The server also supports the following environment variables for configuration:
 
 These environment variables can be set in several ways:
 1. Directly in your terminal (as shown in the examples below)
-2. In your Cursor MCP configuration through the `env` field (see [Complete Configuration Example](#complete-configuration-example-with-environment-variables))
-3. In a `.env` file in the project root directory
-4. Through command line options with npx (as shown in the [Command Line Options](#command-line-options-npx-mode) section)
+2. In your Cursor or Claude Desktop MCP configuration through the `env` field (see [Complete Configuration Example](#complete-configuration-example-with-environment-variables))
+3. Through command line options with npx (as shown in the [Command Line Options](#command-line-options-npx-mode) section)
+
+The server does not load a `.env` file by itself.
 
 ### Usage
 

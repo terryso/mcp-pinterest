@@ -1,0 +1,7 @@
+node_modules
+dist
+.git
+coverage
+downloads
+*.log
+screenshot.png
